@@ -96,7 +96,7 @@ void nrf24l01p_tx_init(channel MHz, air_data_rate bps)
     nrf24l01p_set_crc_length(1);
     nrf24l01p_set_address_widths(5);
 
-    nrf24l01p_auto_retransmit_count(3);
+    nrf24l01p_auto_retransmit_count(10);
     nrf24l01p_auto_retransmit_delay(250);
 
     ce_high();

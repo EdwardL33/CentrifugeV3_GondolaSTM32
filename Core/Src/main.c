@@ -113,6 +113,9 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  // reset the max number of packet send attempts (or the radio will timeout)
+	  nrf24l01p_clear_max_rt();
+
 	  // transmit
 	  if(MPU6050_DataReady() == 1)
 		{
