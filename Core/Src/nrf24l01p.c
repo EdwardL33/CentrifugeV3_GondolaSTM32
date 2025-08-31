@@ -9,7 +9,7 @@
 
 #include "nrf24l01p.h"
 
-
+volatile bool tx_failed = false;
 static void cs_high()
 {
     HAL_GPIO_WritePin(NRF24L01P_SPI_CS_PIN_PORT, NRF24L01P_SPI_CS_PIN_NUMBER, GPIO_PIN_SET);
@@ -25,12 +25,12 @@ static void ce_high()
     HAL_GPIO_WritePin(NRF24L01P_CE_PIN_PORT, NRF24L01P_CE_PIN_NUMBER, GPIO_PIN_SET);
 }
 
-static void ce_low()
+void ce_low()
 {
     HAL_GPIO_WritePin(NRF24L01P_CE_PIN_PORT, NRF24L01P_CE_PIN_NUMBER, GPIO_PIN_RESET);
 }
 
-static uint8_t read_register(uint8_t reg)
+uint8_t read_register(uint8_t reg)
 {
     uint8_t command = NRF24L01P_CMD_R_REGISTER | reg;
     uint8_t status;
@@ -44,7 +44,20 @@ static uint8_t read_register(uint8_t reg)
     return read_val;
 }
 
-static uint8_t write_register(uint8_t reg, uint8_t value)
+uint8_t write_address(uint8_t reg, uint8_t *data, uint8_t len) {
+    uint8_t cmd = NRF24L01P_CMD_W_REGISTER | (reg & 0x1F);
+    uint8_t status;
+
+    cs_low();
+    HAL_SPI_TransmitReceive(NRF24L01P_SPI, &cmd, &status, 1, 2000);
+    HAL_SPI_Transmit(NRF24L01P_SPI, data, len, 2000); // all bytes at once
+    cs_high();
+
+    return status;
+}
+
+
+uint8_t write_register(uint8_t reg, uint8_t value)
 {
     uint8_t command = NRF24L01P_CMD_W_REGISTER | reg;
     uint8_t status;
@@ -96,7 +109,7 @@ void nrf24l01p_tx_init(channel MHz, air_data_rate bps)
     nrf24l01p_set_crc_length(1);
     nrf24l01p_set_address_widths(5);
 
-    nrf24l01p_auto_retransmit_count(10);
+    nrf24l01p_auto_retransmit_count(3);
     nrf24l01p_auto_retransmit_delay(250);
 
     ce_high();
@@ -107,7 +120,7 @@ void nrf24l01p_rx_receive(uint8_t* rx_payload)
     nrf24l01p_read_rx_fifo(rx_payload);
     nrf24l01p_clear_rx_dr();
 
-//    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 }
 
 void nrf24l01p_tx_transmit(uint8_t* tx_payload)
@@ -123,15 +136,16 @@ void nrf24l01p_tx_irq()
     if(tx_ds)
     {
         // TX_DS
-//        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
         nrf24l01p_clear_tx_ds();
     }
 
     else
     {
         // MAX_RT
-//        HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, SET);
+        HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, SET);
         nrf24l01p_clear_max_rt();
+        tx_failed = true;
     }
 }
 

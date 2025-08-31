@@ -84,8 +84,8 @@ all: main-build
 main-build: Centrifuge_Gondola.elf secondary-outputs
 
 # Tool invocations
-Centrifuge_Gondola.elf Centrifuge_Gondola.map: $(OBJS) $(USER_OBJS) C:\Users\User\STM32CubeIDE\workspace_1.18.1\Centrifuge_Gondola\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-g++ -o "Centrifuge_Gondola.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\User\STM32CubeIDE\workspace_1.18.1\Centrifuge_Gondola\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Centrifuge_Gondola.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
+Centrifuge_Gondola.elf Centrifuge_Gondola.map: $(OBJS) $(USER_OBJS) C:\Users\3dstr\STM32CubeIDE\workspace_1.18.1\Centrifuge_Gondola\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-g++ -o "Centrifuge_Gondola.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\3dstr\STM32CubeIDE\workspace_1.18.1\Centrifuge_Gondola\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Centrifuge_Gondola.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

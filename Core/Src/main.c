@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include "nrf24l01p.h"
 #include "MPU6050.h"
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,6 +62,7 @@ void SystemClock_Config(void);
 
 // for rx interrupt
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
+void nrf24l01p_dump_registers(void);
 
 /* USER CODE END PFP */
 
@@ -104,6 +106,11 @@ int main(void)
   /* USER CODE BEGIN 2 */
   MPU6050_Initialization();
   nrf24l01p_tx_init(2500, _250kbps);
+
+  uint8_t en_aa = read_register(NRF24L01P_REG_EN_AA);
+  en_aa &= ~(1 << 0);           // Disable AA on pipe 0
+  write_register(NRF24L01P_REG_EN_AA, en_aa);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -113,8 +120,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  // reset the max number of packet send attempts (or the radio will timeout)
-	  nrf24l01p_clear_max_rt();
 
 	  // transmit
 	  if(MPU6050_DataReady() == 1)
@@ -126,10 +131,6 @@ int main(void)
 														MPU6050.gyro_x_raw & 0xFF, (MPU6050.gyro_x_raw >> 8) & 0xFF, MPU6050.gyro_y_raw & 0xFF, (MPU6050.gyro_y_raw >> 8) & 0xFF, MPU6050.gyro_z_raw & 0xFF, (MPU6050.gyro_z_raw >> 8) & 0xFF
 													   };
 			nrf24l01p_tx_transmit(tx_data);
-
-			// for serial monitor
-//			HAL_UART_Transmit_IT(&huart1, tx_data, 14);
-			//HAL_Delay(100);
 		}
 
 
@@ -143,6 +144,8 @@ int main(void)
 	  // LED loop always runs
 	  ledTimer ++;
 	  if(ledTimer > 200){
+		  nrf24l01p_dump_registers();
+//		  HAL_UART_Transmit_IT(&huart1, &status, 1);
 		  ledTimer = 0;
 		  led = !led;
 		  if(led){
@@ -150,6 +153,44 @@ int main(void)
 		  }else{
 			  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 		  }
+	  }
+
+	  // if failed to send message, then reset the radio
+	  if (tx_failed) {
+		  tx_failed = false;
+		  nrf24l01p_tx_init(2500, _250kbps);
+	  }
+
+	  // if radio lost power, reset the radio
+	  uint8_t rf_ch = read_register(NRF24L01P_REG_RF_CH);
+	  if (rf_ch != 0x64) {  // 0x64 is your desired channel
+	      nrf24l01p_tx_init(2500, _250kbps);
+
+	      uint8_t en_aa = read_register(NRF24L01P_REG_EN_AA);
+	      en_aa &= ~(1 << 0);           // Disable AA on pipe 0
+	      write_register(NRF24L01P_REG_EN_AA, en_aa);
+	  }
+
+	  uint8_t status = read_register(NRF24L01P_REG_STATUS);
+	  if (status == 0xFF || status == 0x00) {
+	      // Radio is not responding
+	      nrf24l01p_tx_init(2500, _250kbps);
+
+	      uint8_t en_aa = read_register(NRF24L01P_REG_EN_AA);
+	      en_aa &= ~(1 << 0);           // Disable AA on pipe 0
+	      write_register(NRF24L01P_REG_EN_AA, en_aa);
+	  }
+
+	  uint8_t observe_tx = read_register(NRF24L01P_REG_OBSERVE_TX);
+	  uint8_t plos_cnt = (observe_tx >> 4) & 0x0F;
+
+	  if (plos_cnt > 0) {
+	      // Transmission failed, reinit radio
+		  nrf24l01p_tx_init(2500, _250kbps);
+
+		  uint8_t en_aa = read_register(NRF24L01P_REG_EN_AA);
+		  en_aa &= ~(1 << 0);           // Disable AA on pipe 0
+		  write_register(NRF24L01P_REG_EN_AA, en_aa);
 	  }
 
 	  HAL_Delay(1);
@@ -218,6 +259,79 @@ void SystemClock_Config(void)
 
 	}
 
+	void nrf24l01p_dump_registers(void) {
+//	    char buf[64];
+//	    uint8_t val[5];
+//
+//	    // CONFIG (0x00)
+//	    snprintf(buf, sizeof(buf), "CONFIG     = 0x%02X\r\n", read_register(0x00));
+//	    HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
+//
+//	    // RF_CH (0x05)
+//	    snprintf(buf, sizeof(buf), "RF_CH      = 0x%02X\r\n", read_register(0x05));
+//	    HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
+//
+//	    // RF_SETUP (0x06)
+//	    snprintf(buf, sizeof(buf), "RF_SETUP   = 0x%02X\r\n", read_register(0x06));
+//	    HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
+//
+//	    // STATUS (0x07)
+//	    snprintf(buf, sizeof(buf), "STATUS     = 0x%02X\r\n", read_register(0x07));
+//	    HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
+//
+//	    // FIFO_STATUS (0x17)
+//	    snprintf(buf, sizeof(buf), "FIFO_STAT  = 0x%02X\r\n", read_register(0x17));
+//	    HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
+//
+//	    // TX_ADDR (0x10) - 5 bytes
+//	    read_register(0x10, val, 5);
+//	    snprintf(buf, sizeof(buf), "TX_ADDR    = %02X %02X %02X %02X %02X\r\n", val[0], val[1], val[2], val[3], val[4]);
+//	    HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
+//
+//	    // RX_ADDR_P0 (0x0A) - 5 bytes
+//	    read_register(0x0A, val, 5);
+//	    snprintf(buf, sizeof(buf), "RX_ADDR_P0 = %02X %02X %02X %02X %02X\r\n", val[0], val[1], val[2], val[3], val[4]);
+//	    HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
+//
+//	    // RX_ADDR_P1 (0x0B) - 5 bytes
+//	    read_register(0x0B, val, 5);
+//	    snprintf(buf, sizeof(buf), "RX_ADDR_P1 = %02X %02X %02X %02X %02X\r\n", val[0], val[1], val[2], val[3], val[4]);
+//	    HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
+
+	    char buf[64];
+
+	    // CONFIG (0x00)
+	    snprintf(buf, sizeof(buf), "CONFIG     = 0x%02X\r\n", read_register(0x00));
+	    HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
+
+	    // RF_CH (0x05)
+	    snprintf(buf, sizeof(buf), "RF_CH      = 0x%02X\r\n", read_register(0x05));
+	    HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
+
+	    // RF_SETUP (0x06)
+	    snprintf(buf, sizeof(buf), "RF_SETUP   = 0x%02X\r\n", read_register(0x06));
+	    HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
+
+	    // STATUS (0x07)
+	    snprintf(buf, sizeof(buf), "STATUS     = 0x%02X\r\n", read_register(0x07));
+	    HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
+
+	    // FIFO_STATUS (0x17)
+	    snprintf(buf, sizeof(buf), "FIFO_STAT  = 0x%02X\r\n", read_register(0x17));
+	    HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
+
+	    // TX_ADDR (0x10) - 5 bytes
+	    snprintf(buf, sizeof(buf), "TX_ADDR    = 0x%02X\r\n", read_register(0x10));
+	    HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
+
+	    snprintf(buf, sizeof(buf), "RX_ADDR_P0    = 0x%02X\r\n", read_register(0x0A));
+		HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
+
+		snprintf(buf, sizeof(buf), "RX_ADDR_P1    = 0x%02X\r\n", read_register(0x0B));
+		HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
+
+	}
+
 /* USER CODE END 4 */
 
 /**
@@ -234,8 +348,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.

@@ -1,6 +1,7 @@
 #include "MPU6050.h"
 #include "main.h"
 #include "i2c.h"
+#include <stdio.h>
 
 Struct_MPU6050 MPU6050;
 

@@ -53,6 +53,9 @@ typedef enum
     _18dBm = 0
 } output_power;
 
+extern volatile bool tx_failed;
+
+
 
 /* Main Functions */
 void nrf24l01p_rx_init(channel MHz, air_data_rate bps);
@@ -64,6 +67,9 @@ void nrf24l01p_tx_transmit(uint8_t* tx_payload);
 // Check tx_ds or max_rt
 void nrf24l01p_tx_irq();
 
+uint8_t write_register(uint8_t reg, uint8_t value);
+uint8_t write_address(uint8_t reg, uint8_t *data, uint8_t len);
+uint8_t read_register(uint8_t reg);
 
 /* Sub Functions */
 void nrf24l01p_reset();
