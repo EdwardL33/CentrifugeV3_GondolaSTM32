@@ -74,6 +74,8 @@ void Error_Handler(void);
 #define IMU_INT_GPIO_Port GPIOB
 #define SPI_LED_Pin GPIO_PIN_13
 #define SPI_LED_GPIO_Port GPIOB
+#define LED_2_Pin GPIO_PIN_14
+#define LED_2_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
