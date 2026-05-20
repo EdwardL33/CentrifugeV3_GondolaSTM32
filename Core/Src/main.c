@@ -131,6 +131,21 @@ int main(void)
 														MPU6050.gyro_x_raw & 0xFF, (MPU6050.gyro_x_raw >> 8) & 0xFF, MPU6050.gyro_y_raw & 0xFF, (MPU6050.gyro_y_raw >> 8) & 0xFF, MPU6050.gyro_z_raw & 0xFF, (MPU6050.gyro_z_raw >> 8) & 0xFF
 													   };
 			nrf24l01p_tx_transmit(tx_data);
+
+//			char msg[128];
+//
+//			snprintf(msg, sizeof(msg),
+//			         "AX:%.2f AY:%.2f AZ:%.2f TEMP:%.2f GX:%.2f GY:%.2f GZ:%.2f\r\n",
+//			         MPU6050.acc_x_raw / 2048.f,
+//			         MPU6050.acc_y_raw / 2048.f,
+//			         MPU6050.acc_z_raw / 2048.f,
+//			         MPU6050.temperature_raw / 340 + 36.53,
+//			         MPU6050.gyro_x_raw / 65.5f,
+//			         MPU6050.gyro_y_raw / 65.5f,
+//			         MPU6050.gyro_z_raw / 65.5f);
+//
+//			HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+
 		}
 
 
@@ -138,13 +153,13 @@ int main(void)
 //		nrf24l01p_tx_transmit(tx_data);
 //
 //		  // for serial monitor
-//		HAL_UART_Transmit_IT(&huart1, tx_data, 14);
+
 //		HAL_Delay(100);
 
 	  // LED loop always runs
 	  ledTimer ++;
 	  if(ledTimer > 200){
-		  nrf24l01p_dump_registers();
+//		  nrf24l01p_dump_registers();
 //		  HAL_UART_Transmit_IT(&huart1, &status, 1);
 		  ledTimer = 0;
 		  led = !led;
